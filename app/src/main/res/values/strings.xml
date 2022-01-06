@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">zc3</string>
+
+    <string name="mi_hdr_system">SYSTEM:\n</string>
+    <string name="mi_hdr_device">\n\nDEVICE:</string>
+    <string name="mi_sys_id">ID: %1$s\n</string>
+    <string name="mi_sys_sizing_type">DPI: %1$s\n</string>
+    <string name="mi_device_manufacturer">Manufacturer: %1$s\n</string>
+    <string name="mi_device_id">ID: %1$s\n</string>
+    <string name="mi_device_brand">Brand: %1$s\n</string>
+    <string name="mi_device_model">Model: %1$s\n</string>
+    <string name="mi_device_board">Board: %1$s\n</string>
+    <string name="mi_device_hardware">Hardware: %1$s\n</string>
+    <string name="mi_device_serial">Serial: %1$s\n</string>
+    <string name="mi_device_bootloader">Bootloader: %1$s\n</string>
+    <string name="mi_device_user">User: %1$s\n</string>
+    <string name="mi_device_host">Host: %1$s\n</string>
+    <string name="mi_device_build_time">Build time: %1$s\n</string>
+    <string name="mi_device_version_release">Version release: %1$s\n</string>
+    <string name="mi_device_sdk_int">Version SDK: %1$d\n</string>
+    <string name="ui_sizing_type" translatable="false">default</string>
+</resources>
