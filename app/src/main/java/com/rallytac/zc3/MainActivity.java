@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity
 
     private final int NET_PORT = 43000;
     private final int SAMPLE_RATE = 16000;
+    private final int NET_PAYLOAD_SIZE_IN_BYTES = 128;
 
     private final String SP_REMOTE_ADDRESS = "remoteAddress";
 
@@ -463,12 +464,12 @@ public class MainActivity extends AppCompatActivity
 
                                 while( toGo > 0)
                                 {
-                                    if(toGo < 128) {
+                                    if(toGo < NET_PAYLOAD_SIZE_IN_BYTES) {
                                         toSend = toGo;
                                     }
                                     else
                                     {
-                                        toSend = 128;
+                                        toSend = NET_PAYLOAD_SIZE_IN_BYTES;
                                     }
 
                                     toGo -= toSend;
