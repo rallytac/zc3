@@ -1,7 +1,7 @@
 # zc3
 This is a simple little Android project to test various approaches to acoustic echo cancellation.
 
-<img src="doc/screen01.png" alt="drawing" width="200"/>
+<img src="doc/screen01.png" alt="drawing" width="300"/>
 
 ## Internal Operation
 The app operates by capturing PCM audio from the microphone and queuing the captured buffer.  This is done by `MyRecordingThread`.  The queue is then flushed to the network by MySenderThread as unsignaled, uncompressed, headerless UDP packets.  Each packet consists of up to NET_PAYLOAD_SIZE_IN_BYTES bytes of audio data.  That audio data comes from the microphone as 16-bit integers, so each buffer of captured audio is first converted to an array of bytes (litte endian order), and then chunked into individual packets of up to NET_PAYLOAD_SIZE_IN_BYTES each. (This is done to eliminate fragmentation of the UDP packets which may adversely affect our test scenarios.)
