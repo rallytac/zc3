@@ -19,4 +19,61 @@
     <string name="mi_device_version_release">Version release: %1$s\n</string>
     <string name="mi_device_sdk_int">Version SDK: %1$d\n</string>
     <string name="ui_sizing_type" translatable="false">default</string>
+
+    <string-array name="audio_source_names">
+        <item>CAMCORDER</item>
+        <item>DEFAULT</item>
+        <item>MIC</item>
+        <item>REMOTE_SUBMIX</item>
+        <item>UNPROCESSED</item>
+        <item>VOICE_CALL</item>
+        <item>VOICE_COMMUNICATION</item>
+        <item>VOICE_DOWNLINK</item>
+        <item>VOICE_PERFORMANCE</item>
+        <item>VOICE_RECOGNITION</item>
+        <item>VOICE_UPLINK</item>
+    </string-array>
+    <integer-array name="audio_source_values">
+        <item>5</item>
+        <item>0</item>
+        <item>1</item>
+        <item>8</item>
+        <item>9</item>
+        <item>4</item>
+        <item>7</item>
+        <item>3</item>
+        <item>10</item>
+        <item>6</item>
+        <item>2</item>
+    </integer-array>
+
+    <string-array name="audio_mode_names">
+        <item>MODE_CALL_SCREENING</item>
+        <item>MODE_CURRENT</item>
+        <item>MODE_INVALID</item>
+        <item>MODE_IN_CALL</item>
+        <item>MODE_IN_COMMUNICATION</item>
+        <item>MODE_NORMAL</item>
+        <item>MODE_RINGTONE</item>
+    </string-array>
+    <integer-array name="audio_mode_values">
+        <item>4</item>
+        <item>-1</item>
+        <item>-2</item>
+        <item>2</item>
+        <item>3</item>
+        <item>0</item>
+        <item>1</item>
+    </integer-array>
+
+    <string-array name="audio_usage_names">
+        <item>USAGE_UNKNOWN</item>
+        <item>USAGE_MEDIA</item>
+        <item>USAGE_VOICE_COMMUNICATION</item>
+    </string-array>
+    <integer-array name="audio_usage_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </integer-array>
 </resources>

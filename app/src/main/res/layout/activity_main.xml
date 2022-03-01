@@ -10,43 +10,95 @@
         android:id="@+id/etRemote"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_margin="10dp"
         android:ems="10"
         android:text="Remote Address @ 43000" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Mode" />
+
+    <Spinner
+        android:id="@+id/spnAudioMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Source" />
+
+    <Spinner
+        android:id="@+id/spnAudioSource"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Usage" />
+
+    <Spinner
+        android:id="@+id/spnAudioUsage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp" />
+    
+    <Switch
+        android:id="@+id/swSpeakerPhone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:onClick="onClickSpeakerPhoneSwitch"
+        android:text="SpeakerPhone" />
+    
+    <Switch
+        android:id="@+id/swRun"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:onClick="onClickRunSwitch"
+        android:text="Run" />
 
     <Switch
         android:id="@+id/swNet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="2dp"
+        android:layout_margin="10dp"
         android:onClick="onClickNetworkingSwitch"
-        android:text="Networking"
-        />
-
+        android:text="Networking" />
 
     <Switch
         android:id="@+id/swAec"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="2dp"
+        android:layout_margin="10dp"
         android:onClick="onClickAecSwitch"
-        android:text="AEC"
-        />
+        android:text="AEC" />
 
     <Switch
         android:id="@+id/swAudio"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="2dp"
+        android:layout_margin="10dp"
         android:onClick="onClickAudioSwitch"
-        android:text="Audio"
-        />
+        android:text="Audio" />
 
     <Switch
         android:id="@+id/swMic"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="2dp"
+        android:layout_margin="10dp"
         android:onClick="onClickMicSwitch"
-        android:text="Microphone"
-        />
+        android:text="Microphone" />
+
 </LinearLayout>

@@ -15,7 +15,6 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
-import android.media.MediaRecorder;
 import android.media.audiofx.AcousticEchoCanceler;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,7 +23,9 @@ import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Switch;
 
 import java.net.DatagramPacket;
@@ -55,6 +56,9 @@ public class MainActivity extends AppCompatActivity
     private final int NET_PAYLOAD_SIZE_IN_BYTES = 128;
 
     private final String SP_REMOTE_ADDRESS = "remoteAddress";
+    private final String SP_AUDIO_MODE = "audioMode";
+    private final String SP_AUDIO_USAGE = "audioUsage";
+    private final String SP_AUDIO_SOURCE = "audioSource";
 
     private static final int CAMERA_REQUEST = 1888;
     private AudioRecord rec;
@@ -67,9 +71,11 @@ public class MainActivity extends AppCompatActivity
     private ArrayList<short[]> inboundBuffers = new ArrayList<>();
     private MySenderThread senderThread = null;
     private MyReceiverThread receiverThread = null;
+    private boolean runOn = false;
     private boolean micOn = false;
     private boolean netOn = false;
     private boolean audioOn = false;
+    private boolean speakerPhoneOn = false;
     //private MulticastSocket socket = null;
     private DatagramSocket socket = null;
     private boolean aecOn = false;
@@ -77,6 +83,10 @@ public class MainActivity extends AppCompatActivity
     private SharedPreferences sp = null;
     private SharedPreferences.Editor spEd = null;
     private Timer uiUpdateTimer = null;
+    private Spinner spnAudioMode;
+    private Spinner spnAudioSource;
+    private Spinner spnAudioUsage;
+    private boolean syncingUi = false;
 
     private long netPacketsIn = 0;
     private long netPacketsOut = 0;
@@ -187,15 +197,115 @@ public class MainActivity extends AppCompatActivity
 
         ((EditText)findViewById(R.id.etRemote)).setText(sp.getString(SP_REMOTE_ADDRESS, ""));
 
+        {
+            spnAudioMode = findViewById(R.id.spnAudioMode);
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                    R.array.audio_mode_names, android.R.layout.simple_spinner_item);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spnAudioMode.setAdapter(adapter);
+            retrieveSpnSelectedItemPosition(R.id.spnAudioMode, SP_AUDIO_MODE);
+        }
+
+        {
+            spnAudioSource = findViewById(R.id.spnAudioSource);
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                    R.array.audio_source_names, android.R.layout.simple_spinner_item);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spnAudioSource.setAdapter(adapter);
+            retrieveSpnSelectedItemPosition(R.id.spnAudioSource, SP_AUDIO_SOURCE);
+        }
+
+        {
+            spnAudioUsage = findViewById(R.id.spnAudioUsage);
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                    R.array.audio_usage_names, android.R.layout.simple_spinner_item);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spnAudioUsage.setAdapter(adapter);
+            retrieveSpnSelectedItemPosition(R.id.spnAudioUsage, SP_AUDIO_USAGE);
+        }
+
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        audioManager.setSpeakerphoneOn(true);
 
         startUiUpdateTimer();
     }
 
+    private int translateSpnSelection(int idSpn, int idVal)
+    {
+        return getResources().getIntArray(idVal)[((Spinner)findViewById(idSpn)).getSelectedItemPosition()];
+    }
+
+    private void saveSpnSelectedItemPosition(int idSpn, String settingName)
+    {
+        spEd.putInt(settingName, ((Spinner)findViewById(idSpn)).getSelectedItemPosition());
+        spEd.apply();
+    }
+
+    private void retrieveSpnSelectedItemPosition(int idSpn, String settingName)
+    {
+        if(sp.contains(settingName))
+        {
+            int pos = sp.getInt(settingName, -99999);
+            if(pos != -99999)
+            {
+                ((Spinner)findViewById(idSpn)).setSelection(pos);
+            }
+        }
+    }
+
+    public void onClickRunSwitch(View view)
+    {
+        netOn = false;
+        aecOn = false;
+        micOn = false;
+
+        stopAudio();
+        stopNetworking();
+
+        netOn = false;
+        micOn = false;
+        aecOn = false;
+        audioOn = false;
+
+        syncUiToOperation();
+
+        runOn = ((Switch)view).isChecked();
+        if(runOn)
+        {
+            saveSpnSelectedItemPosition(R.id.spnAudioMode, SP_AUDIO_MODE);
+            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            audioManager.setMode(translateSpnSelection(R.id.spnAudioMode, R.array.audio_mode_values));
+            audioManager.setSpeakerphoneOn(false);
+        }
+        else
+        {
+        }
+    }
+
+    public void onClickSpeakerPhoneSwitch(View view)
+    {
+        if(syncingUi)
+        {
+            return;
+        }
+
+        speakerPhoneOn = ((Switch)view).isChecked();
+        if(speakerPhoneOn)
+        {
+            audioManager.setSpeakerphoneOn(true);
+        }
+        else
+        {
+            audioManager.setSpeakerphoneOn(false);
+        }
+    }
+
     public void onClickNetworkingSwitch(View view)
     {
+        if(syncingUi)
+        {
+            return;
+        }
+
         netOn = ((Switch)view).isChecked();
         if(netOn)
         {
@@ -209,6 +319,11 @@ public class MainActivity extends AppCompatActivity
 
     public void onClickAudioSwitch(View view)
     {
+        if(syncingUi)
+        {
+            return;
+        }
+
         audioOn = ((Switch)view).isChecked();
         if(audioOn)
         {
@@ -222,11 +337,21 @@ public class MainActivity extends AppCompatActivity
 
     public void onClickMicSwitch(View view)
     {
+        if(syncingUi)
+        {
+            return;
+        }
+
         micOn = ((Switch)view).isChecked();
     }
 
     public void onClickAecSwitch(View view)
     {
+        if(syncingUi)
+        {
+            return;
+        }
+
         aecOn = ((Switch)view).isChecked();
     }
 
@@ -593,7 +718,8 @@ public class MainActivity extends AppCompatActivity
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT);
 
-        rec = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+        saveSpnSelectedItemPosition(R.id.spnAudioSource, SP_AUDIO_SOURCE);
+        rec = new AudioRecord(translateSpnSelection(R.id.spnAudioSource, R.array.audio_source_values),
                 SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
@@ -615,9 +741,10 @@ public class MainActivity extends AppCompatActivity
             Log.w("Main", "no aec being used");
         }
 
+        saveSpnSelectedItemPosition(R.id.spnAudioUsage, SP_AUDIO_USAGE);
         spk = new AudioTrack.Builder()
                 .setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .setUsage(translateSpnSelection(R.id.spnAudioUsage, R.array.audio_usage_values))
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                         .build())
                 .setAudioFormat(new AudioFormat.Builder()
@@ -787,6 +914,21 @@ public class MainActivity extends AppCompatActivity
         }
 
         return rc;
+    }
+
+    private void syncUiToOperation()
+    {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                syncingUi = true;
+                ((Switch)findViewById(R.id.swNet)).setChecked(netOn);
+                ((Switch)findViewById(R.id.swAec)).setChecked(aecOn);
+                ((Switch)findViewById(R.id.swAudio)).setChecked(audioOn);
+                ((Switch)findViewById(R.id.swMic)).setChecked(micOn);
+                syncingUi = false;
+            }
+        });
     }
 
     private void updateUi()

@@ -1,5 +1,5 @@
 # zc3
-This is a simple little Android project to test various approaches to acoustic echo cancellation.
+This is a simple little Android project to test various approaches to acoustic echo cancellation, noise suppresion, and other Android audio goodies.
 
 <img src="doc/screen01.png" alt="drawing" width="300"/>
 
@@ -28,3 +28,12 @@ The UI of the app is really just a text box and a bunch of UI switches.  Be sure
 ## Notes
 - There is a C++ module present in the project.  It isn't being used at the moment.
 - There is zero(!!!) error checking in this app.  Be careful with it (and don't be too harsh on it).
+
+## Results
+
+### Noise Suppression
+
+#### LG LMK
+- Mode: MODE_IN_COMMUNICATION
+- Source: VOICE_COMMUNICATION
+- Usage: USAGE_VOICE_COMMUNICATION
