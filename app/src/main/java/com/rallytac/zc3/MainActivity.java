@@ -16,6 +16,7 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -27,6 +28,7 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Switch;
+import android.widget.TextView;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity
     private AudioRecord rec;
     private AudioTrack spk;
     private AcousticEchoCanceler aec = null;
+    private NoiseSuppressor ns = null;
     private AudioManager audioManager = null;
     private MyRecordingThread recordingThread = null;
     private MyPlayoutThread playoutThread = null;
@@ -71,14 +74,10 @@ public class MainActivity extends AppCompatActivity
     private ArrayList<short[]> inboundBuffers = new ArrayList<>();
     private MySenderThread senderThread = null;
     private MyReceiverThread receiverThread = null;
-    private boolean runOn = false;
     private boolean micOn = false;
-    private boolean netOn = false;
-    private boolean audioOn = false;
-    private boolean speakerPhoneOn = false;
+
     //private MulticastSocket socket = null;
     private DatagramSocket socket = null;
-    private boolean aecOn = false;
     private String remoteAddr;
     private SharedPreferences sp = null;
     private SharedPreferences.Editor spEd = null;
@@ -86,7 +85,6 @@ public class MainActivity extends AppCompatActivity
     private Spinner spnAudioMode;
     private Spinner spnAudioSource;
     private Spinner spnAudioUsage;
-    private boolean syncingUi = false;
 
     private long netPacketsIn = 0;
     private long netPacketsOut = 0;
@@ -254,105 +252,32 @@ public class MainActivity extends AppCompatActivity
 
     public void onClickRunSwitch(View view)
     {
-        netOn = false;
-        aecOn = false;
-        micOn = false;
-
-        stopAudio();
-        stopNetworking();
-
-        netOn = false;
-        micOn = false;
-        aecOn = false;
-        audioOn = false;
-
-        syncUiToOperation();
-
-        runOn = ((Switch)view).isChecked();
-        if(runOn)
+        if(((Switch)view).isChecked())
         {
+            enableOptions(false);
             saveSpnSelectedItemPosition(R.id.spnAudioMode, SP_AUDIO_MODE);
-            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
             audioManager.setMode(translateSpnSelection(R.id.spnAudioMode, R.array.audio_mode_values));
-            audioManager.setSpeakerphoneOn(false);
+            audioManager.setSpeakerphoneOn(((Switch) findViewById(R.id.swSpeakerPhone)).isChecked());
+
+            startNetworking();
+            startAudio();
         }
         else
         {
+            stopNetworking();
+            stopAudio();
+            enableOptions(true);
         }
     }
 
     public void onClickSpeakerPhoneSwitch(View view)
     {
-        if(syncingUi)
-        {
-            return;
-        }
-
-        speakerPhoneOn = ((Switch)view).isChecked();
-        if(speakerPhoneOn)
-        {
-            audioManager.setSpeakerphoneOn(true);
-        }
-        else
-        {
-            audioManager.setSpeakerphoneOn(false);
-        }
-    }
-
-    public void onClickNetworkingSwitch(View view)
-    {
-        if(syncingUi)
-        {
-            return;
-        }
-
-        netOn = ((Switch)view).isChecked();
-        if(netOn)
-        {
-            startNetworking();
-        }
-        else
-        {
-            stopNetworking();
-        }
-    }
-
-    public void onClickAudioSwitch(View view)
-    {
-        if(syncingUi)
-        {
-            return;
-        }
-
-        audioOn = ((Switch)view).isChecked();
-        if(audioOn)
-        {
-            startAudio();
-        }
-        else
-        {
-            stopAudio();
-        }
+        audioManager.setSpeakerphoneOn(((Switch) view).isChecked());
     }
 
     public void onClickMicSwitch(View view)
     {
-        if(syncingUi)
-        {
-            return;
-        }
-
-        micOn = ((Switch)view).isChecked();
-    }
-
-    public void onClickAecSwitch(View view)
-    {
-        if(syncingUi)
-        {
-            return;
-        }
-
-        aecOn = ((Switch)view).isChecked();
+        micOn = ((Switch) view).isChecked();
     }
 
     private class MyRecordingThread extends Thread
@@ -362,12 +287,14 @@ public class MainActivity extends AppCompatActivity
         private boolean running = true;
         private AudioRecord recorder = null;
         private AcousticEchoCanceler echoCanceller = null;
+        private NoiseSuppressor noiseSuppressor = null;
         private int minBufferSizeIn = 0;
 
-        MyRecordingThread(AudioRecord recorder, AcousticEchoCanceler echoCanceller, int minBufferSizeIn)
+        MyRecordingThread(AudioRecord recorder, AcousticEchoCanceler echoCanceller, NoiseSuppressor noiseSuppressor, int minBufferSizeIn)
         {
             this.recorder = recorder;
             this.echoCanceller = echoCanceller;
+            this.noiseSuppressor = noiseSuppressor;
             this.minBufferSizeIn = minBufferSizeIn;
         }
 
@@ -384,6 +311,24 @@ public class MainActivity extends AppCompatActivity
 
         public void run()
         {
+            if(noiseSuppressor != null)
+            {
+                noiseSuppressor.setEnabled(true);
+                if(!noiseSuppressor.getEnabled())
+                {
+                    setNsText(": CANNOT ENABLE!");
+                }
+            }
+
+            if(echoCanceller != null)
+            {
+                echoCanceller.setEnabled(true);
+                if(!echoCanceller.getEnabled())
+                {
+                    setAecText(": CANNOT ENABLE!");
+                }
+            }
+
             short[] audioData = new short[minBufferSizeIn];
             recorder.startRecording();
 
@@ -711,6 +656,37 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    private boolean useAec()
+    {
+        return ((Switch)findViewById(R.id.swAec)).isChecked();
+    }
+
+    private void setAecText(final String txt)
+    {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ((Switch)findViewById(R.id.swAec)).setText("AEC" + txt);
+            }
+        });
+    }
+
+
+    private boolean useNs()
+    {
+        return ((Switch)findViewById(R.id.swNs)).isChecked();
+    }
+
+    private void setNsText(final String txt)
+    {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ((Switch)findViewById(R.id.swNs)).setText("Noise Suppressor" + txt);
+            }
+        });
+    }
+
     @SuppressLint("MissingPermission")
     private void startAudio()
     {
@@ -727,18 +703,57 @@ public class MainActivity extends AppCompatActivity
 
         int recSessionId = rec.getAudioSessionId();
 
-        if(aecOn)
+        if(useNs())
         {
-            if(AcousticEchoCanceler.isAvailable()) {
-                aec = AcousticEchoCanceler.create(recSessionId);
+            if(NoiseSuppressor.isAvailable())
+            {
+                ns = NoiseSuppressor.create(recSessionId);
+                if(ns != null)
+                {
+                    setNsText(": IN USE");
+                }
+                else
+                {
+                    setNsText(": FAILED TO CREATE!");
+                }
             }
-            else {
+            else
+            {
+                Log.e("Main", "no ns available");
+                setNsText(": NOT AVAILABLE!");
+            }
+        }
+        else
+        {
+            Log.w("Main", "no ns being used");
+            setNsText(": NOT USED");
+        }
+
+
+        if(useAec())
+        {
+            if(AcousticEchoCanceler.isAvailable())
+            {
+                aec = AcousticEchoCanceler.create(recSessionId);
+                if(aec != null)
+                {
+                    setAecText(": IN USE");
+                }
+                else
+                {
+                    setAecText(": FAILED TO CREATE!");
+                }
+            }
+            else
+            {
                 Log.e("Main", "no aec available");
+                setAecText(": NOT AVAILABLE!");
             }
         }
         else
         {
             Log.w("Main", "no aec being used");
+            setAecText(": NOT USED");
         }
 
         saveSpnSelectedItemPosition(R.id.spnAudioUsage, SP_AUDIO_USAGE);
@@ -763,12 +778,16 @@ public class MainActivity extends AppCompatActivity
         if(aec != null)
         {
             aec.setEnabled(true);
+            if(!aec.getEnabled())
+            {
+                setAecText(": CANNOT ENABLE!");
+            }
         }
 
         playoutThread = new MyPlayoutThread(spk, aec, minBufferSizeIn);
         playoutThread.start();
 
-        recordingThread = new MyRecordingThread(rec, aec, minBufferSizeIn);
+        recordingThread = new MyRecordingThread(rec, aec, ns, minBufferSizeIn);
         recordingThread.start();
     }
 
@@ -778,8 +797,16 @@ public class MainActivity extends AppCompatActivity
         if(playoutThread != null) playoutThread.close();
 
         if(aec != null ) aec.release();
+        if(ns != null ) ns.release();
         if(rec != null ) rec.release();
         if(spk != null ) spk.release();
+
+        aec = null;
+        ns = null;
+        rec = null;
+        spk = null;
+
+        setNsText("");
     }
 
     private void startNetworking()
@@ -916,17 +943,16 @@ public class MainActivity extends AppCompatActivity
         return rc;
     }
 
-    private void syncUiToOperation()
+    private void enableOptions(final boolean ena)
     {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                syncingUi = true;
-                ((Switch)findViewById(R.id.swNet)).setChecked(netOn);
-                ((Switch)findViewById(R.id.swAec)).setChecked(aecOn);
-                ((Switch)findViewById(R.id.swAudio)).setChecked(audioOn);
-                ((Switch)findViewById(R.id.swMic)).setChecked(micOn);
-                syncingUi = false;
+                findViewById(R.id.spnAudioSource).setEnabled(ena);
+                findViewById(R.id.spnAudioMode).setEnabled(ena);
+                findViewById(R.id.spnAudioUsage).setEnabled(ena);
+                findViewById(R.id.swAec).setEnabled(ena);
+                findViewById(R.id.swNs).setEnabled(ena);
             }
         });
     }
@@ -936,10 +962,10 @@ public class MainActivity extends AppCompatActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Switch sw;
+                TextView tv;
 
-                sw = findViewById(R.id.swNet);
-                sw.setText("Net:" + netPacketsIn + "/" + netPacketsOut);
+                tv = findViewById(R.id.tvStats);
+                tv.setText("RX:" + netPacketsIn + " TX:" + netPacketsOut);
             }
         });
     }
